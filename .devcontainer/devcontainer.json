@@ -1,0 +1,28 @@
+// Codespaces / VS Code dev container for qalam.
+//
+// Opens with gram cloned next to qalam (../gram, or ~/gram) and installed in
+// ~/.local, HarfBuzz, FriBidi and zlib installed, and qalam built, tested and
+// installed in ~/.local, so `qalam` works in the terminal right away, and
+// Python with pypdfium2 + pypdf so `make test` runs the copy-and-search test.
+//
+// Try:  qalam examples/coffee/coffee.qlm   then open examples/coffee/coffee.pdf
+{
+  "name": "qalam",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.makefile-tools",
+        "tomoki1207.pdf"
+      ]
+    },
+    "codespaces": {
+      "openFiles": ["examples/coffee/coffee.src.qlm", "src/qalam.gram", "README.md"]
+    }
+  }
+}

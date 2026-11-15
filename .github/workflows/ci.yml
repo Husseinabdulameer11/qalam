@@ -1,0 +1,99 @@
+name: ci
+
+# Every push and pull request: build and test qalam on Linux (the system's
+# HarfBuzz/FriBidi, with gcc and clang), Linux with gram installed instead of
+# checked out, Linux with the libraries built in and linked statically (like a
+# release), macOS, Windows, and the Docker image.
+#
+# `make test` builds every example to a PDF, checks the error messages, checks
+# that an installed qalam run from PATH finds its fonts, and (where Python with
+# pypdfium2 + pypdf is installed) that the text copies back out of the PDFs.
+
+# qalam builds with gram, which lives in its own repository (assumed to be
+# <same owner>/gram). Every job checks it out into ./gram-src and passes GRAM=.
+env:
+  GRAM_REPO: ${{ github.repository_owner }}/gram
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: "${{ env.GRAM_REPO }}", path: gram-src }
+      - run: sudo apt-get update -q && sudo apt-get install -y -q libharfbuzz-dev libfribidi-dev zlib1g-dev
+      - run: pip install pypdfium2 pypdf
+      - run: make test CC=${{ matrix.cc }} GRAM=gram-src
+
+  linux-installed-gram:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: "${{ env.GRAM_REPO }}", path: gram-src }
+      - run: sudo apt-get update -q && sudo apt-get install -y -q libharfbuzz-dev libfribidi-dev zlib1g-dev
+      - run: make -C gram-src install PREFIX="$HOME/.local"
+      - run: PATH=$HOME/.local/bin:$PATH make test
+
+  linux-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: "${{ env.GRAM_REPO }}", path: gram-src }
+      - uses: actions/cache@v4
+        with: { path: deps/cache, key: "deps-${{ hashFiles('tools/deps.sh') }}" }
+      - run: pip install pypdfium2 pypdf
+      - run: sh tools/deps.sh
+      - run: make test GRAM=gram-src LDFLAGS=-static
+      - run: file build/qalam | grep -q static
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: "${{ env.GRAM_REPO }}", path: gram-src }
+      - uses: actions/cache@v4
+        with: { path: deps/cache, key: "deps-${{ hashFiles('tools/deps.sh') }}" }
+      - run: python3 -m pip install --break-system-packages pypdfium2 pypdf || true
+      - run: sh tools/deps.sh
+      - run: make test GRAM=gram-src
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: "${{ env.GRAM_REPO }}", path: gram-src }
+      - uses: actions/cache@v4
+        with: { path: deps/cache, key: "deps-${{ hashFiles('tools/deps.sh') }}" }
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: make diffutils curl tar xz mingw-w64-ucrt-x86_64-gcc
+      - run: sh tools/deps.sh
+      - run: make test GRAM=gram-src LDFLAGS=-static
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: "${{ env.GRAM_REPO }}", path: gram-src }
+      - run: docker build --build-context gram=gram-src -t qalam .
+      - name: The image runs, and finds its fonts
+        run: |
+          docker run --rm qalam --version
+          docker run --rm -v "$PWD/tests/install:/work" qalam --check uses_fonts.qlm
+          docker run --rm -v "$PWD/examples/coffee:/work" qalam -o /tmp/coffee.pdf coffee.qlm

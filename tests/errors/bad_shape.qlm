@@ -1,0 +1,5 @@
+% expect: 4:1: syntax error: expected newline, comment, shape or at_end
+@font body Amiri-Regular.ttf
+@figure 100 50
+square 10 10 80
+@end

@@ -1,0 +1,100 @@
+# qalam.gram - the .qlm document format, for gram (https://github.com/Husseinabdulameer11/gram)
+#
+# A document is a list of lines. Spaces and tabs are skipped between tokens;
+# line ends are not, so every block says where its lines end. Rule names are
+# what syntax errors list ("expected key"), so they are chosen to read well:
+# at_end reads as "@end".
+
+skip      <= [ \t\r]* ;
+
+document  <- (~newline / ~comment / block)* ;
+block     <^ font / size / bib / title / subtitle / author / date / maketitle
+           / toc / pagebreak / bibliography / caption / figure / table
+           / heading / quote / item / unknown / para ;
+
+newline        <= '\n' ;
+EOL       <- ~newline / !. ;
+comment   <= '%' [^\n]* ;
+
+# ---- settings and metadata ------------------------------------------------------
+font         <- ~at_font key path ~EOL ;
+size         <- ~at_size number ~EOL ;
+bib          <- ~at_bib key ~'=' text ~EOL ;
+title        <- ~at_title text ~EOL ;
+subtitle     <- ~at_subtitle text ~EOL ;
+author       <- ~at_author text ~EOL ;
+date         <- ~at_date text ~EOL ;
+maketitle    <- ~at_maketitle ~EOL ;
+toc          <- ~at_toc ~EOL ;
+pagebreak    <- ~at_pagebreak ~EOL ;
+bibliography <- ~at_bibliography ~EOL ;
+caption      <- ~at_caption text ~EOL ;
+
+# any other @word: parsed so qalam can say which directive it does not know
+unknown      <- !known directive ~(word* ~EOL) ;
+known        <= at_font / at_size / at_bibliography / at_bib / at_title / at_subtitle / at_author
+              / at_date / at_maketitle / at_toc / at_pagebreak / at_caption / at_figure / at_table / at_end ;
+directive    <= '@' [A-Za-z0-9_]* ;
+
+# ---- figures: a small drawing language --------------------------------------------
+#   @figure 470 150
+#   rect 10 10 80 40 radius=8 fill=#e3efef stroke=accent
+#   text 50 35 "نص" size=11
+#   @end
+figure    <- ~at_figure number number ~EOL (~newline / ~comment / draw)* ~end ;
+draw      <- shape (option / number / string)* ~EOL ;
+shape     <= ('rect' / 'circle' / 'ellipse' / 'line' / 'path' / 'text') ![A-Za-z0-9_] ;
+option    <- key ~'=' (string / word) ;
+string    <= '"' [^"\n]* '"' ;
+word      <= [^ \t\r\n]+ ;
+
+# ---- tables -------------------------------------------------------------------------
+#   @table 1,3            relative column widths; the first column is on the right
+#   ! header | header     '!' marks a header row
+#   cell | cell
+#   @end
+table     <- ~at_table widths ~EOL (~newline / ~comment / row)* ~end ;
+widths    <- number (~',' number)* ;
+row       <- !at_end header? cell (~'|' cell)* ~EOL ;
+header    <= '!' ;
+cell      <= ([^| \t\r\n]+ ([ \t]+ [^| \t\r\n]+)*)? ;
+
+end       <- ~at_end ~EOL ;
+
+# ---- text ---------------------------------------------------------------------------
+heading   <- level text ~EOL ;
+level     <= '##' / '#*' / '#' ;
+quote     <- ~'>' inline ~EOL ;
+item      <- ~bullet inline ~EOL ;
+bullet    <= '-' [ \t] ;
+para      <- line+ ;
+line      <- !special inline ~EOL ;
+special   <= '@' / '#' / '>' / '%' / '-' [ \t] / '\n' ;
+
+# Running text with citations: "... as shown in [@hattox]." The C code keeps the
+# text exactly as written (the slice of the line) and swaps each cite for [n].
+inline    <- (cite / chunk)+ ;
+cite      <- ~'[@' key ~']' ;
+chunk     <= (!'[@' [^\n])+ ;
+
+# ---- tokens ---------------------------------------------------------------------------
+key       <= [A-Za-z_] [A-Za-z0-9_.\-]* ;
+path      <= [^ \t\r\n]+ ([ \t]+ [^ \t\r\n]+)* ;
+text      <= [^ \t\r\n]+ ([ \t]+ [^ \t\r\n]+)* ;
+number    <= '-'? ([0-9]+ ('.' [0-9]+)? / '.' [0-9]+) ![^ \t\r\n,] ;
+
+at_font         <= '@font' ![A-Za-z0-9_] ;
+at_size         <= '@size' ![A-Za-z0-9_] ;
+at_bib          <= '@bib' ![A-Za-z0-9_] ;
+at_title        <= '@title' ![A-Za-z0-9_] ;
+at_subtitle     <= '@subtitle' ![A-Za-z0-9_] ;
+at_author       <= '@author' ![A-Za-z0-9_] ;
+at_date         <= '@date' ![A-Za-z0-9_] ;
+at_maketitle    <= '@maketitle' ![A-Za-z0-9_] ;
+at_toc          <= '@toc' ![A-Za-z0-9_] ;
+at_pagebreak    <= '@pagebreak' ![A-Za-z0-9_] ;
+at_bibliography <= '@bibliography' ![A-Za-z0-9_] ;
+at_caption      <= '@caption' ![A-Za-z0-9_] ;
+at_figure       <= '@figure' ![A-Za-z0-9_] ;
+at_table        <= '@table' ![A-Za-z0-9_] ;
+at_end          <= '@end' ![A-Za-z0-9_] ;

@@ -1,0 +1,4 @@
+% expect: syntax error: expected newline, comment, shape or at_end
+@font body Amiri-Regular.ttf
+@figure 100 50
+rect 10 10 80 30 fill=accent

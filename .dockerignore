@@ -1,0 +1,9 @@
+build/
+dist/
+deps/build/
+.git/
+.github/
+.devcontainer/
+bench/
+tests/extract/node_modules/
+gram-src/

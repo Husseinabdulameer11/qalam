@@ -1,0 +1,7 @@
+% expect: 5:7: syntax error: expected number
+@font body Amiri-Regular.ttf
+% a table needs its column widths
+% (this comment line is 4; the table is line 5)
+@table
+! أ | ب
+@end

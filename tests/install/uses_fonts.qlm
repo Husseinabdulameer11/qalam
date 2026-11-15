@@ -1,0 +1,7 @@
+% Checks that an installed qalam finds the fonts it ships with on its own:
+% `make test` runs it from another folder, with qalam found on PATH.
+@font body    Amiri-Regular.ttf
+@font heading NotoKufiArabic-Bold.ttf
+@font sans    Vazirmatn-Regular.ttf
+# اختبار
+الخطوط موجودة.

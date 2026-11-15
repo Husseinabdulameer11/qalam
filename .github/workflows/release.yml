@@ -1,0 +1,256 @@
+name: release
+
+# Push a tag like v0.2.0 and this builds, tests and publishes everything:
+#
+#   GitHub release v0.2.0 with
+#     qalam-windows-setup.exe        Windows installer (adds qalam to PATH)
+#     qalam-windows-x86_64.zip       Windows, no installer
+#     qalam-linux-x86_64.tar.gz      Linux (static, any distro)
+#     qalam-linux-aarch64.tar.gz     Linux on ARM (Raspberry Pi 4/5, ARM servers)
+#     qalam-macos-universal.tar.gz   macOS, Intel and Apple silicon
+#     SHA256SUMS                     checksums (install.sh verifies them)
+#   ghcr.io/<owner>/qalam:0.2.0 and :latest   Docker image, amd64 + arm64
+#
+# Every archive holds qalam, the fonts it ships with, and the examples with
+# their PDFs. HarfBuzz, FriBidi and zlib are compiled in (tools/deps.sh).
+#
+# Run it by hand from the Actions tab ("Run workflow") for a dry run: it
+# builds and tests everything and keeps the files as workflow artifacts, but
+# publishes nothing.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create the release
+  packages: write   # push the Docker image to ghcr.io
+
+env:
+  # gram lives in its own repository; every build checks it out into gram-src.
+  GRAM_REPO: ${{ github.repository_owner }}/gram
+  GRAM_REF: main
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - id: v
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            v=${GITHUB_REF_NAME#v}
+            if ! printf '%s\n' "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+              echo "::error::tag $GITHUB_REF_NAME is not like v1.2.3"; exit 1
+            fi
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            v=0.0.0-dev.${GITHUB_SHA::7}
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "qalam version: $v"
+
+  linux:
+    needs: version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            platform: linux/amd64
+          - arch: aarch64
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: "${{ env.GRAM_REPO }}", ref: "${{ env.GRAM_REF }}", path: gram-src }
+      - if: matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+      # Built inside Alpine (musl) and linked statically: one binary that runs
+      # on every Linux distribution, old or new.
+      - name: Build and test (static, Alpine)
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          docker run --rm --platform ${{ matrix.platform }} \
+            -v "$PWD:/src" -w /src -e VERSION alpine:3.20 sh -c '
+              apk add --no-cache build-base curl tar xz &&
+              sh tools/deps.sh &&
+              make -j"$(nproc)" test GRAM=gram-src VERSION="$VERSION" LDFLAGS=-static &&
+              strip build/qalam'
+          file build/qalam
+          file build/qalam | grep -q static   # "statically linked" or "static-pie linked"
+      - run: sudo chown -R "$(id -u)" . && sh packaging/package.sh linux-${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qalam-linux-${{ matrix.arch }}
+          path: dist/qalam-linux-${{ matrix.arch }}.tar.gz
+          if-no-files-found: error
+
+  macos:
+    needs: version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: "${{ env.GRAM_REPO }}", ref: "${{ env.GRAM_REF }}", path: gram-src }
+      # One "universal" binary with both Intel and Apple silicon code in it.
+      - name: Build and test (universal)
+        run: |
+          sh tools/deps.sh
+          make test GRAM=gram-src VERSION=${{ needs.version.outputs.version }} \
+            CFLAGS="-O2 -arch arm64 -arch x86_64 -mmacosx-version-min=11.0"
+          strip build/qalam
+          lipo -info build/qalam
+          lipo -info build/qalam | grep -q x86_64
+          lipo -info build/qalam | grep -q arm64
+          otool -L build/qalam
+      - run: sh packaging/package.sh macos-universal
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qalam-macos-universal
+          path: dist/qalam-macos-universal.tar.gz
+          if-no-files-found: error
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: "${{ env.GRAM_REPO }}", ref: "${{ env.GRAM_REF }}", path: gram-src }
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: make diffutils zip curl tar xz mingw-w64-ucrt-x86_64-gcc
+      # -static: qalam.exe needs no MSYS2 DLLs, only what Windows 10+ has.
+      - name: Build and test
+        shell: msys2 {0}
+        run: |
+          sh tools/deps.sh
+          make test GRAM=gram-src VERSION=${{ needs.version.outputs.version }} LDFLAGS=-static
+          strip build/qalam.exe
+          echo "DLLs qalam.exe needs:"; ldd build/qalam.exe
+          if ldd build/qalam.exe | grep -qi ucrt64; then
+            echo "::error::qalam.exe depends on MSYS2 DLLs"; exit 1
+          fi
+          sh packaging/package.sh windows-x86_64
+      - name: Build the installer (Inno Setup)
+        shell: pwsh
+        run: |
+          choco upgrade innosetup -y --no-progress   # installs it, or updates to 6.3+
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc /DAppVersion=${{ needs.version.outputs.version }} `
+                  /DRepo=${{ github.repository }} packaging\windows\qalam.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Smoke-test the installer
+        shell: pwsh
+        run: |
+          Start-Process dist\qalam-windows-setup.exe -Wait -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/CURRENTUSER'
+          $bin = "$env:LOCALAPPDATA\Programs\qalam\bin"
+          & "$bin\qalam.exe" --version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          # the installed qalam must find its fonts (..\fonts) on its own
+          Push-Location tests\install
+          & "$bin\qalam.exe" --check uses_fonts.qlm
+          if ($LASTEXITCODE -ne 0) { Write-Error "installed qalam.exe did not find its fonts"; exit 1 }
+          Pop-Location
+          $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+          if (-not ($userPath -split ';' -contains $bin)) { Write-Error "qalam was not added to PATH"; exit 1 }
+          # the uninstaller re-launches itself from %TEMP%, so -Wait returns early: poll
+          Start-Process "$env:LOCALAPPDATA\Programs\qalam\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES'
+          for ($i = 0; $i -lt 60 -and (Test-Path "$bin\qalam.exe"); $i++) { Start-Sleep 1 }
+          Start-Sleep 2
+          $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+          if ($userPath -split ';' -contains $bin) { Write-Error "uninstall left qalam on PATH"; exit 1 }
+          if (Test-Path "$bin\qalam.exe") { Write-Error "uninstall left qalam.exe behind"; exit 1 }
+          Write-Output "installer ok: installs, adds to PATH, uninstalls cleanly"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qalam-windows
+          path: |
+            dist/qalam-windows-x86_64.zip
+            dist/qalam-windows-setup.exe
+          if-no-files-found: error
+
+  docker:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: "${{ env.GRAM_REPO }}", ref: "${{ env.GRAM_REF }}", path: gram-src }
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"   # ghcr needs lower case
+      - if: needs.version.outputs.publish == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          context: .
+          build-contexts: gram=./gram-src
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ needs.version.outputs.version }}
+          push: ${{ needs.version.outputs.publish == 'true' }}
+          tags: |
+            ${{ steps.image.outputs.name }}:${{ needs.version.outputs.version }}
+            ${{ steps.image.outputs.name }}:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ needs.version.outputs.version }}
+
+  release:
+    needs: [version, linux, macos, windows, docker]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: qalam-*        # only our builds, not docker's .dockerbuild record
+          merge-multiple: true
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: ${{ needs.version.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          image=ghcr.io/${REPO,,}
+          cat > notes.md <<EOF
+          ## Install
+
+          **Windows:** download **qalam-windows-setup.exe** below and run it. It adds \`qalam\` to your PATH; open a new terminal and run \`qalam --help\`.
+
+          **macOS / Linux:**
+          \`\`\`
+          curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | sh
+          \`\`\`
+
+          **Docker** (any OS), in the folder with your .qlm files:
+          \`\`\`
+          docker run --rm -v "\${PWD}:/work" $image:$V doc.qlm
+          \`\`\`
+          It writes doc.pdf next to doc.qlm.
+
+          Or open the repository in GitHub Codespaces: gram and qalam are built and on PATH when it opens.
+
+          Every download includes the fonts qalam ships with and the examples, each with its PDF.
+          EOF
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$REPO" --title "qalam $V" --notes-file notes.md --generate-notes --verify-tag

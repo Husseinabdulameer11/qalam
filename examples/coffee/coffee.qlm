@@ -1,0 +1,213 @@
+% القهوة العربية - an example document for qalam
+% figures.py fills in the {{...}} figure blocks and writes coffee.qlm
+
+@font body     Amiri-Regular.ttf
+@font ref      Amiri-Regular.ttf
+@font heading  NotoKufiArabic-Bold.ttf
+@font title    Vazirmatn-Black.ttf
+@font sans     Vazirmatn-Regular.ttf
+@font sansbold Vazirmatn-Bold.ttf
+@font quote    NotoNaskhArabic-Regular.ttf
+@size 13
+
+@bib unesco      = UNESCO (2015). Arabic coffee, a symbol of generosity. Representative List of the Intangible Cultural Heritage of Humanity, Intergovernmental Committee, 10th session, Windhoek.
+@bib hattox      = Hattox, R. S. (1985). Coffee and Coffeehouses: The Origins of a Social Beverage in the Medieval Near East. Seattle: University of Washington Press.
+@bib pendergrast = Pendergrast, M. (2010). Uncommon Grounds: The History of Coffee and How It Transformed Our World (rev. ed.). New York: Basic Books.
+@bib ukers       = Ukers, W. H. (1922). All About Coffee. New York: The Tea and Coffee Trade Journal Company.
+@bib illy        = Illy, A., & Viani, R. (Eds.) (2005). Espresso Coffee: The Science of Quality (2nd ed.). Amsterdam: Elsevier Academic Press.
+
+@title القهوة العربية
+@subtitle من الحبة إلى الفنجان: تاريخها وتحضيرها وآداب تقديمها
+@date نوفمبر ٢٠٢٦
+@maketitle
+@figure 330 230
+ellipse 165 212 150 13 fill=#efe6d3
+% handle
+path "M 168 92 C 205 92, 214 150, 190 176" stroke=#8a6a1f width=6
+path "M 168 92 C 205 92, 214 150, 190 176" stroke=#d4ae55 width=3
+% spout
+path "M 133 114 C 110 110, 82 98, 52 68 L 47 73 C 74 103, 104 122, 130 128 Z" fill=#d4ae55 stroke=#8a6a1f width=1
+% body
+path "M 98 202 C 86 162, 124 142, 130 122 L 170 122 C 176 142, 214 162, 202 202 Z" fill=#d4ae55 stroke=#8a6a1f width=1.2
+path "M 104 188 C 140 196, 160 196, 196 188" stroke=#8a6a1f width=1
+path "M 112 170 C 140 176, 160 176, 188 170" stroke=#f3dc9a width=1.4
+rect 94 199 112 9 radius=3 fill=#b8913a stroke=#8a6a1f width=1
+% neck
+path "M 130 122 C 125 106, 134 96, 136 84 L 164 84 C 166 96, 175 106, 170 122 Z" fill=#dcb85f stroke=#8a6a1f width=1.2
+rect 132 79 36 7 radius=2 fill=#b8913a stroke=#8a6a1f width=1
+% lid
+path "M 134 79 C 138 62, 146 54, 150 44 C 154 54, 162 62, 166 79 Z" fill=#dcb85f stroke=#8a6a1f width=1.2
+circle 150 40 5.5 fill=#b8913a stroke=#8a6a1f width=1
+% cups
+path "M 236 178 L 268 178 C 266 198, 261 206, 252 206 C 243 206, 238 198, 236 178 Z" fill=white stroke=#9a9a9a width=1
+ellipse 252 179 16 3 fill=#b98b4e
+path "M 278 186 L 306 186 C 304 202, 300 209, 292 209 C 284 209, 280 202, 278 186 Z" fill=white stroke=#9a9a9a width=1
+ellipse 292 187 14 2.6 fill=#b98b4e
+path "M 248 168 C 242 158, 256 152, 249 140" stroke=#b5b5b5 width=1.2
+path "M 257 170 C 251 160, 265 154, 258 142" stroke=#c8c8c8 width=1
+% cardamom and dates
+ellipse 46 206 7 4 fill=#7da35a stroke=#557a3a width=0.8
+ellipse 60 211 7 4 fill=#88ad63 stroke=#557a3a width=0.8
+ellipse 38 214 7 4 fill=#7da35a stroke=#557a3a width=0.8
+ellipse 222 208 9 5 fill=#6b3a1e stroke=#4a2410 width=0.8
+ellipse 212 215 9 5 fill=#7a4524 stroke=#4a2410 width=0.8
+@end
+
+@toc
+
+# مقدمة
+
+لا يكاد يخلو بيت عربي من دلة القهوة. فهي أول ما يُقدَّم للضيف، وآخر ما يُشرب قبل أن ينصرف، وبينهما حديث طويل يدور حول الفناجين الصغيرة. ولم تعد القهوة مجرد مشروب، بل صارت لغة كاملة من الإشارات والآداب يفهمها الكبير والصغير.
+
+وقد اعترفت منظمة اليونسكو بهذه المكانة حين أدرجت «القهوة العربية رمزاً للكرم» عام ٢٠١٥ في القائمة التمثيلية للتراث الثقافي غير المادي للبشرية، بترشيح مشترك من الإمارات والسعودية وعُمان وقطر [@unesco]. تتناول هذه الورقة القصيرة تاريخ القهوة، وطريقة تحضيرها التقليدية، وآداب تقديمها، ثم تقارنها بأشهر طرق التحضير الأخرى.
+
+# لمحة تاريخية
+
+## من اليمن إلى العالم
+
+تعود شجرة البن العربي في أصلها إلى مرتفعات الحبشة، لكن شرب القهوة بوصفها مشروباً يظهر في المصادر أول مرة في اليمن خلال القرن الخامس عشر الميلادي، حيث كان المتصوفة يشربونها ليبقوا يقظين في حلقات الذكر الليلية [@hattox]. ومن اليمن انتقلت إلى مكة والقاهرة في مطلع القرن السادس عشر، ثم إلى إسطنبول، فانتشرت معها المقاهي بوصفها أماكن جديدة للقاء والحديث [@pendergrast].
+
+ولم يكن هذا الانتشار هادئاً دائماً؛ ففي عام ١٥١١م حاول والي مكة خاير بك منع شرب القهوة وإغلاق مجالسها، غير أن المنع لم يدم طويلاً [@hattox]. أما أوروبا فلم تعرف القهوة على نطاق واسع إلا في القرن السابع عشر، عبر موانئ التجارة مثل البندقية [@ukers].
+
+## الكلمة نفسها
+
+كلمة «قهوة» أقدم من المشروب؛ فقد استعملها العرب قديماً اسماً من أسماء الخمر، ثم انتقلت إلى شراب البن [@hattox]. ومن العربية عبرت الكلمة إلى التركية «kahve» ثم إلى لغات أوروبا، فصارت café وcoffee وKaffee، وهي كلها في الأصل كلمة عربية واحدة.
+
+> الفنجان الأول للضيف، والثاني للكيف، والثالث للسيف
+
+يتردد هذا المثل الشعبي في مجالس الخليج والشام، ويختصر بطريقة طريفة معنى كل فنجان: الأول واجب الضيافة، والثاني للمتعة، والثالث كأنه عهد بالنصرة.
+
+# من الحبة إلى الفنجان
+
+يمر تحضير القهوة العربية التقليدية بخمس مراحل رئيسية، يلخصها الشكل التالي. وتختلف التفاصيل من منطقة إلى أخرى، لكن الخطوات الأساسية واحدة تقريباً.
+
+@figure 470 104
+rect 396 22 74 46 radius=9 fill=#e3efef stroke=accent width=1.2
+text 433.0 50 "التحميص" font=sansbold size=12 color=accent
+text 433.0 88 "على نار هادئة" size=8.5 color=grey
+circle 468 22 9 fill=#c99a3e
+text 468 25.5 "١" font=sansbold size=9 color=white
+line 392 45 375 45 arrow=end stroke=accent width=1.4
+rect 297 22 74 46 radius=9 fill=#f3ead7 stroke=accent width=1.2
+text 334.0 50 "الطحن" font=sansbold size=12 color=accent
+text 334.0 88 "في المهباش" size=8.5 color=grey
+circle 369 22 9 fill=#c99a3e
+text 369 25.5 "٢" font=sansbold size=9 color=white
+line 293 45 276 45 arrow=end stroke=accent width=1.4
+rect 198 22 74 46 radius=9 fill=#e3efef stroke=accent width=1.2
+text 235.0 50 "الغلي" font=sansbold size=12 color=accent
+text 235.0 88 "في الدلة" size=8.5 color=grey
+circle 270 22 9 fill=#c99a3e
+text 270 25.5 "٣" font=sansbold size=9 color=white
+line 194 45 177 45 arrow=end stroke=accent width=1.4
+rect 99 22 74 46 radius=9 fill=#f3ead7 stroke=accent width=1.2
+text 136.0 50 "الهيل" font=sansbold size=12 color=accent
+text 136.0 88 "يُضاف قبل التقديم" size=8.5 color=grey
+circle 171 22 9 fill=#c99a3e
+text 171 25.5 "٤" font=sansbold size=9 color=white
+line 95 45 78 45 arrow=end stroke=accent width=1.4
+rect 0 22 74 46 radius=9 fill=#e3efef stroke=accent width=1.2
+text 37.0 50 "التقديم" font=sansbold size=12 color=accent
+text 37.0 88 "في الفناجين" size=8.5 color=grey
+circle 72 22 9 fill=#c99a3e
+text 72 25.5 "٥" font=sansbold size=9 color=white
+@end
+@caption مراحل تحضير القهوة العربية التقليدية
+
+## التحميص
+
+تُحمَّص الحبوب الخضراء في «المحماس» على نار هادئة مع التقليب المستمر. وفي أثناء التحميص تحدث تفاعلات كيميائية، أبرزها تفاعلات ميار والكرملة، تمنح الحبة لونها البني ورائحتها المميزة [@illy]. وتُفضَّل القهوة الخليجية عادة بتحميص فاتح يعطي لوناً أشقر وطعماً خفيفاً، بينما يميل أهل الشام والعراق إلى تحميص أغمق.
+
+@figure 470 150
+ellipse 405 62 24 34 fill=#c9a36c stroke=#2b1a10 width=0.8
+path "M 405 30 C 396 48, 414 74, 405 94" stroke=#f1e4cf width=1.6
+text 405 122 "فاتح" font=sansbold size=11
+ellipse 290 62 24 34 fill=#9b6a3c stroke=#2b1a10 width=0.8
+path "M 290 30 C 281 48, 299 74, 290 94" stroke=#f1e4cf width=1.6
+text 290 122 "متوسط" font=sansbold size=11
+ellipse 175 62 24 34 fill=#6b4226 stroke=#2b1a10 width=0.8
+path "M 175 30 C 166 48, 184 74, 175 94" stroke=#f1e4cf width=1.6
+text 175 122 "داكن" font=sansbold size=11
+ellipse 60 62 24 34 fill=#3a2316 stroke=#2b1a10 width=0.8
+path "M 60 30 C 51 48, 69 74, 60 94" stroke=#f1e4cf width=1.6
+text 60 122 "داكن جداً" font=sansbold size=11
+text 405 14 "الشائع في القهوة الخليجية" size=9 color=accent
+line 455 140 15 140 arrow=end stroke=grey width=1
+@end
+@caption درجات التحميص من الفاتح إلى الداكن جداً
+
+## الطحن والغلي
+
+تُطحن الحبوب المحمصة في «المهباش»، وهو هاون خشبي أو نحاسي يصدر صوتاً إيقاعياً كان بمثابة دعوة للجيران إلى المجلس. ثم تُغلى القهوة في الدلة مدة كافية، وتُترك قليلاً حتى يركد البن في القاع، وتُضاف إليها في النهاية حبات الهيل المطحونة، وقد يضيف بعضهم الزعفران أو القرنفل.
+
+يلخص الجدول التالي أهم أدوات القهوة التقليدية:
+
+@table 1,3
+! الأداة | الاستخدام
+المحماس | مقلاة حديدية بمقبض طويل لتحميص الحبوب على النار
+المهباش | هاون لطحن الحبوب المحمصة يدوياً
+الدلة | إبريق نحاسي بمنقار طويل تُغلى فيه القهوة وتُصب منه
+الفنجان | كوب صغير بلا مقبض يُقدَّم فيه قليل من القهوة
+@end
+@caption أدوات القهوة العربية التقليدية
+
+# آداب التقديم
+
+للقهوة في المجلس قواعد يعرفها الجميع دون أن تُكتب، ومن أشهرها:
+
+- يمسك المُضيف الدلة بيده اليسرى، ويقدّم الفنجان بيده اليمنى.
+- يُصب في الفنجان قليل من القهوة لا يتجاوز ربعه أو ثلثه، لتبقى ساخنة ويتكرر الصب.
+- يبدأ التقديم من الضيف الجالس على يمين المُضيف أو من كبير القوم، ثم يدور على الحاضرين.
+- إذا اكتفى الضيف هزّ الفنجان هزّاً خفيفاً قبل أن يعيده، فيفهم المُضيف أنه لا يريد المزيد.
+- تُقدَّم مع القهوة عادة التمور، فحلاوتها توازن مرارة البن.
+
+@figure 330 250
+circle 165 112 114 fill=#f6f1e6 stroke=#e3d6bb width=1
+text 165 116 "المجلس" font=heading size=13 color=#b9a47a
+circle 165.0 204.0 15 fill=accent
+text 165.0 208.0 "م" font=sansbold size=11 color=white
+text 165.0 235.0 "المُضيف" font=sansbold size=10 color=accent
+circle 230.1 177.1 13 fill=white stroke=#c99a3e width=1.5
+text 230.1 181.1 "١" font=sansbold size=10 color=#8a6420
+circle 257.0 112.0 13 fill=white stroke=#c99a3e width=1.5
+text 257.0 116.0 "٢" font=sansbold size=10 color=#8a6420
+circle 230.1 46.9 13 fill=white stroke=#c99a3e width=1.5
+text 230.1 50.9 "٣" font=sansbold size=10 color=#8a6420
+circle 165.0 20.0 13 fill=white stroke=#c99a3e width=1.5
+text 165.0 24.0 "٤" font=sansbold size=10 color=#8a6420
+circle 99.9 46.9 13 fill=white stroke=#c99a3e width=1.5
+text 99.9 50.9 "٥" font=sansbold size=10 color=#8a6420
+circle 73.0 112.0 13 fill=white stroke=#c99a3e width=1.5
+text 73.0 116.0 "٦" font=sansbold size=10 color=#8a6420
+circle 99.9 177.1 13 fill=white stroke=#c99a3e width=1.5
+text 99.9 181.1 "٧" font=sansbold size=10 color=#8a6420
+line 173.6 173.4 202.3 161.5 arrow=end stroke=accent width=1.1
+line 214.5 149.3 226.4 120.6 arrow=end stroke=accent width=1.1
+line 226.4 103.4 214.5 74.7 arrow=end stroke=accent width=1.1
+line 202.3 62.5 173.6 50.6 arrow=end stroke=accent width=1.1
+line 156.4 50.6 127.7 62.5 arrow=end stroke=accent width=1.1
+line 115.5 74.7 103.6 103.4 arrow=end stroke=accent width=1.1
+line 103.6 120.6 115.5 149.3 arrow=end stroke=accent width=1.1
+text 256.1 207.1 "يبدأ من اليمين" size=9 color=grey anchor=left
+@end
+@caption ترتيب التقديم في المجلس: يبدأ المُضيف بالضيف الذي على يمينه
+
+# مقارنة بطرق تحضير أخرى
+
+تشترك القهوة العربية مع القهوة التركية والإسبريسو في الحبة نفسها، لكنها تختلف عنهما في درجة التحميص ونعومة الطحن وطريقة الاستخلاص. فالإسبريسو مثلاً يُحضَّر بدفع الماء الساخن عبر البن المطحون ناعماً تحت ضغط يبلغ نحو ٩ بار [@illy]، بينما تعتمد القهوة العربية والتركية على الغلي.
+
+@table 1.2,1.5,1.5,1.5
+! الخاصية | القهوة العربية | القهوة التركية | الإسبريسو
+درجة التحميص | فاتحة إلى متوسطة | متوسطة إلى داكنة | متوسطة إلى داكنة
+نعومة الطحن | متوسطة | ناعمة جداً | ناعمة
+طريقة التحضير | الغلي في الدلة | الغلي في الركوة | ضغط الماء الساخن
+الإضافات | الهيل والزعفران | السكر حسب الطلب | الحليب أحياناً
+طريقة التقديم | فناجين صغيرة | فناجين مع الرغوة | أكواب صغيرة
+@end
+@caption مقارنة عامة بين ثلاث طرق لتحضير القهوة
+
+# خاتمة
+
+القهوة العربية أكثر من مشروب ساخن؛ إنها طقس اجتماعي متكامل، له أدواته وأمثاله وآدابه، وقد حافظ عليه الناس قروناً حتى صار جزءاً من هويتهم. وفي زمن المقاهي السريعة والأكواب الورقية، تذكّرنا الدلة والفناجين الصغيرة بأن الضيافة الحقيقية تحتاج إلى وقت، وإلى مجلس، وإلى من يصب لك فنجاناً ثانياً.
+
+@bibliography

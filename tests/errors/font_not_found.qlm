@@ -1,0 +1,3 @@
+% expect: font 'NoSuchFont.ttf' not found
+@font body NoSuchFont.ttf
+نص
