@@ -2,8 +2,7 @@
 
 An Arabic-first document compiler that writes PDFs whose text you can **copy and search**.
 
-This started as a response to issue #1 in
-[mashakil-al-arabiya](https://github.com/abdulrahman-103/mashakil-al-arabiya/issues/1): copying text out of Arabic PDFs gives garbled, unsearchable text. Version 0.2 adds what you need for a real document: several fonts, a table of contents, citations, figures, and tables.
+Copying text out of most Arabic PDFs gives garbled, unsearchable text. qalam makes PDFs where it doesn't, with what you need for a real document: several fonts, a table of contents, citations, figures, and tables.
 
 `examples/coffee/coffee.pdf` is a 7-page article about Arabic coffee made with it.
 
