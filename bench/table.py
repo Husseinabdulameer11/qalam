@@ -10,7 +10,7 @@ paras = [norm(p) for p in source_paragraphs(os.path.join(BENCH, "../examples/sam
 words = [w for p in paras for w in p.split()]
 producers = [("XeLaTeX (polyglossia)", "sample-xelatex.pdf"), ("LuaLaTeX (babel, HarfBuzz)", "sample-lualatex.pdf"),
              ("Chrome print to PDF", "sample-chrome.pdf"), ("LibreOffice", "sample-libreoffice.pdf"),
-             ("**qalam** (default)", "sample-qalam.pdf"), ("**qalam** --no-actualtext", "sample-qalam-noat.pdf")]
+             ("**qalam** (default)", "sample-qalam.pdf"), ("**qalam** --actualtext=line", "sample-qalam-at.pdf")]
 engines = [e for e in ENGINES if e[0] != "poppler -raw"]
 print("| Producer | " + " | ".join(e[0] for e in engines) + " |")
 print("|---|" + "---|" * len(engines))

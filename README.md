@@ -20,46 +20,47 @@ A text extractor has to undo both from the glyphs alone, using the font's `ToUni
 | | |
 |---|---|
 | Shaping and bidi | HarfBuzz, FriBidi (UAX #9, with per-line rule L2) |
-| ToUnicode | Built from the shaping result, not the font's cmap. A contextual form maps to its base letter, لا to ل + ا, and a mark glyph to its haraka. |
+| ToUnicode | Built from the shaping result, not the font's cmap. A contextual form maps to its base letter and لا to ل + ا. Everything is in visual order, the order the glyphs are drawn in, because that is what extractors expect and reverse. |
+| Harakat | A haraka is drawn as a shape, and its letter's glyph carries the text of both ("بَ"). As separate characters, extractors split them off with a space or put them on the wrong letter. |
 | CIDs | Each (glyph, text, width) combination gets its own CID through a `CIDToGIDMap`. One glyph can mean different text in different places (a mirrored bracket, for example). Each occurrence also gets the exact width it is set at, so a line is one continuous `TJ` with no positioning jumps that extractors would read as spaces. |
-| ActualText | Every line is wrapped in `/Span <</ActualText (logical text)>> BDC … EMC`. pdfium (Chrome, Edge) and Acrobat copy that text directly. |
 | Pieces with no text | A glyph such as an inserted kashida is drawn as a vector outline, so it isn't text and no extractor sees a stray character. |
 | Font | Each font is embedded as a subset (`hb-subset`, glyph ids kept), Type0/CIDFontType2. |
+| ActualText | Off by default; `--actualtext=line` wraps each line in `/Span <</ActualText (logical text)>> BDC … EMC`. See below for why. |
 
 ## Copy and search results
 
-These are the words of the source text you can find by searching each extractor's output.
+These are the words of the source text you can find by searching each extractor's output (pdfium 159 through pypdfium2 5.15, pdf.js 4, poppler 24.02, pypdf 7.1).
 
 **Coffee article** (577 words, 7 pages, justified text, six fonts):
 
 | | pdfium (Chrome, Edge) | pdf.js (Firefox) | poppler | pypdf |
 |---|---|---|---|---|
-| qalam (default) | **563** | **560** | 80 | 510 |
-| qalam `--no-actualtext` | 459 | **560** | **494** | 510 |
+| qalam (default) | **568** | **545** | **515** | **523** |
+| qalam `--actualtext=line` | 69 | **545** | 80 | **523** |
 
 **Comparison with other producers** (same short sample, 81 words, `bench/run.sh`):
 
 | Producer | pdfium | pdf.js | poppler | pdfminer | pypdf |
 |---|---|---|---|---|---|
-| XeLaTeX (polyglossia) | 25 | 24 | 23 | 23 | 15 |
-| LuaLaTeX (babel, HarfBuzz) | 29 | 49 | 44 | 54 | 19 |
-| Chrome print to PDF | 61 | 68 | 63 | 26 | 71 |
-| LibreOffice | 61 | 67 | 64 | 25 | 66 |
-| **qalam** | **80** | **73** | 26 | 25 | **79** |
+| XeLaTeX (polyglossia) | 25 | 24 | 23 | 23 | 22 |
+| LuaLaTeX (babel, HarfBuzz) | 27 | 49 | 44 | **54** | 25 |
+| Chrome print to PDF | 70 | 68 | 63 | 26 | **71** |
+| LibreOffice | 70 | 67 | 64 | 25 | 66 |
+| **qalam** | **74** | **74** | **74** | 26 | 67 |
 
 The "pdfium" column is pdfium's text API through `pypdfium2`. It's the same engine Chrome uses, but this isn't a test of Chrome's copy menu. Acrobat and macOS Preview were not tested.
 
 ### Things learned the hard way
 
-- **`/ViewerPreferences /Direction /R2L` breaks pdfium.** With it set, pdfium reverses the already-correct ActualText of every line. qalam doesn't write it.
-- **poppler (Evince, Okular, `pdftotext`) and pdfminer reverse ActualText.** They treat everything as visual order. If those are your readers, use `--no-actualtext`. No single PDF reads correctly in every extractor.
+- **pdfium changed in 2026.** pdfium 153 ignored our visual-order text and needed ActualText (qalam with ActualText: 563/577 words; without: 459). pdfium 156 and later read visual-order text correctly on their own and reverse the letters inside ActualText (with: 69; without: 568). Recent Chrome has the newer pdfium, so ActualText is now off by default. `--actualtext=line` is there for older Chrome builds.
+- **poppler (Evince, Okular, `pdftotext`) and pdfminer reverse ActualText too.** They treat everything as visual order.
+- **`/ViewerPreferences /Direction /R2L` broke the older pdfium.** It made it reverse the already-correct ActualText of every line. qalam doesn't write it.
 - **pdf.js reads any rightward jump inside a word as a space,** and it treats marks as zero-width whatever the PDF says. Giving each glyph its exact width fixed most of this.
 
 ### Known gaps
 
-- **pdf.js:** a word ending in tanween after alef (`رمزاً`) copies as `رمزا ً`.
-- **pdfium:** «» and [] inside Arabic come out mirrored (`»القهوة«`, `]1[`).
-- **pypdf** drops some text after « or [ in RTL lines.
+- Brackets and «» around Latin text inside an Arabic line can come out facing the wrong way (`(qalam (`); each extractor resolves those with its own bidi.
+- pdfminer reverses all Arabic text, from every producer.
 - Only TrueType (`glyf`) fonts are supported; CFF/OTF fonts such as Lemonada are not.
 - There is no font fallback, and font changes happen per block, not inside a paragraph.
 - Justification stretches spaces only; there is no kashida justification.
@@ -163,8 +164,7 @@ The format is defined by `src/qalam.gram`. gram parses the whole file into a tre
 ```
 -o FILE                  write the PDF to FILE (default: the input with .pdf)
 --check                  read and lay out the document, write nothing
---actualtext=line|word   ActualText span per line (default) or per word
---no-actualtext          ToUnicode only (best for poppler/pdftotext)
+--actualtext=line|word   also wrap each line (or word) in ActualText (helps older pdfium only)
 --no-tounicode           omit ToUnicode (reproduces a broken PDF, for testing)
 --fonts                  print where the bundled fonts are
 --version, --help

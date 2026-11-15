@@ -12,5 +12,5 @@ google-chrome --headless --no-sandbox --disable-gpu --no-pdf-header-footer \
 soffice --headless --convert-to pdf:writer_web_pdf_Export --outdir lo sample.html >/dev/null 2>&1
 mv lo/sample.pdf sample-libreoffice.pdf && rmdir lo
 ../build/qalam -o sample-qalam.pdf ../examples/sample.qlm
-../build/qalam --no-actualtext -o sample-qalam-noat.pdf ../examples/sample.qlm
+../build/qalam --actualtext=line -o sample-qalam-at.pdf ../examples/sample.qlm
 python3 table.py

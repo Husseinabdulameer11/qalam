@@ -11,8 +11,10 @@
  *   - builds ToUnicode from the shaping result (forms -> base letters,
  *     lam-alef -> lam + alef, mark glyphs -> harakat); a glyph that means
  *     different text in different places gets its own CID (CIDToGIDMap)
- *   - wraps each line in /Span <</ActualText (logical text)>> BDC ... EMC
- *   - draws glyphs in visual order, one TJ per word
+ *   - draws glyphs in visual order, one TJ per line, every glyph set at its
+ *     exact width (no jumps that extractors read as spaces)
+ *   - harakat are drawn as shapes; their letter's text carries them
+ *   - optionally (--actualtext) wraps each line in /Span <</ActualText ...>>
  *
  * Document features (v0.2): several fonts, numbered headings, table of
  * contents with links, PDF bookmarks, [@key] citations with a linked
@@ -275,7 +277,16 @@ static void assign_cids(Font *f, const uint32_t *para, int run_end, hb_buffer_t 
             if (inf[k].cluster > c && inf[k].cluster < next) next = inf[k].cluster;
         unsigned idx[32]; int ng = 0;
         for (unsigned k = 0; k < n && ng < 32; k++) if (inf[k].cluster == c) idx[ng++] = k;
-        if (ng == 1) { cid[idx[0]] = font_cid(f, inf[idx[0]].codepoint, para + c, next - c); continue; }
+        if (ng == 1) {
+            /* A bracket in right-to-left text is drawn with its mirror image
+             * ("(" with the ")" glyph). Name the glyph by what it looks like;
+             * extractors run bidi themselves and mirror it back. */
+            uint32_t m = (next - c == 1 && HB_DIRECTION_IS_BACKWARD(hb_buffer_get_direction(b)))
+                       ? hb_unicode_mirroring(hb_unicode_funcs_get_default(), para[c]) : 0;
+            if (m && m != para[c]) cid[idx[0]] = font_cid(f, inf[idx[0]].codepoint, &m, 1);
+            else cid[idx[0]] = font_cid(f, inf[idx[0]].codepoint, para + c, next - c);
+            continue;
+        }
         uint32_t base[32], marks[32]; int nb = 0, nm = 0;
         for (unsigned t = c; t < next && nb < 32 && nm < 32; t++) {
             if (is_mark_char(para[t])) marks[nm++] = para[t]; else base[nb++] = para[t];
@@ -287,20 +298,37 @@ static void assign_cids(Font *f, const uint32_t *para, int run_end, hb_buffer_t 
         }
         /* RTL buffers list a cluster's glyphs in reverse */
         int rtl = HB_DIRECTION_IS_BACKWARD(hb_buffer_get_direction(b));
-        if (ngb == 1 && nb > 0) cid[ib[0]] = font_cid(f, inf[ib[0]].codepoint, base, nb);
-        else if (ngb > 1 && nb > 0) {
-            /* a letter drawn from several pieces (e.g. a kaf body plus its stroke):
-             * the logically first piece carries the text, the rest extract as nothing */
+        /* The letter's glyph carries the whole cluster's text, harakat
+         * included ("بَ"), and the mark glyphs carry none: they are drawn as
+         * shapes. A mark as a separate character is where extractors go wrong
+         * (they split it off with a space, or put it on the wrong letter). */
+        /* In right-to-left text the cluster's text is written in visual
+         * order (mark before letter), like the glyphs themselves: extractors
+         * reverse right-to-left text character by character, which turns it
+         * back into "letter, then its harakat". */
+        uint32_t all[64]; int na = 0;
+        if (rtl) {
+            for (int k = nm - 1; k >= 0 && na < 64; k--) all[na++] = marks[k];
+            for (int k = nb - 1; k >= 0 && na < 64; k--) all[na++] = base[k];
+        } else {
+            for (int k = 0; k < nb && na < 64; k++) all[na++] = base[k];
+            for (int k = 0; k < nm && na < 64; k++) all[na++] = marks[k];
+        }
+        if (ngb >= 1 && nb > 0) {
+            /* several pieces (e.g. a kaf body plus its stroke): the logically
+             * first one carries the text, the rest extract as nothing */
             int lead = rtl ? ngb - 1 : 0;
             for (int k = 0; k < ngb; k++)
-                cid[ib[k]] = k == lead ? font_cid(f, inf[ib[k]].codepoint, base, nb)
+                cid[ib[k]] = k == lead ? font_cid(f, inf[ib[k]].codepoint, all, na)
                                        : font_cid_empty(f, inf[ib[k]].codepoint);
-        }
-        if (ngm == nm)
+            for (int k = 0; k < ngm; k++) cid[im[k]] = font_cid_empty(f, inf[im[k]].codepoint);
+        } else if (ngm == nm) {
+            /* marks with no letter glyph of their own: each mark is its text */
             for (int k = 0; k < nm; k++) {
                 unsigned gi = im[rtl ? nm - 1 - k : k];
                 cid[gi] = font_cid(f, inf[gi].codepoint, &marks[k], 1);
             }
+        }
     }
     for (unsigned i = 0; i < n; i++) inf[i].codepoint = cid[i];
     free(cid);
@@ -371,7 +399,7 @@ static struct {
     char title[512], subtitle[512], author[512], date[256];
     int h1, h2, nfig, ntab, last_block;   /* last_block: 1 figure, 2 table */
     double body_size;
-} D = { .actualtext = 2, .toc_page = -1, .body_size = 13 };
+} D = { .actualtext = 0, .toc_page = -1, .body_size = 13 };
 
 enum { FIGURE = 1, TABLE = 2 };
 
@@ -1631,8 +1659,9 @@ static void usage(FILE *f) {
         "\n"
         "  -o FILE                  write the PDF to FILE\n"
         "  --check                  read and lay out the document, write nothing\n"
-        "  --actualtext=line|word   ActualText span per line (default) or per word\n"
-        "  --no-actualtext          rely on ToUnicode only (best for poppler/pdftotext)\n"
+        "  --actualtext=line|word   also wrap each line (or word) in ActualText; helps\n"
+        "                           pdfium before 156 (older Chrome), breaks newer\n"
+        "                           pdfium, poppler and pdfminer\n"
         "  --no-tounicode           omit ToUnicode (for testing: reproduces broken PDFs)\n"
         "  --fonts                  print where the bundled fonts are\n"
         "  --version, --help\n"

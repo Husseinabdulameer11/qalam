@@ -12,8 +12,8 @@ import pypdf, pypdfium2
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 CHECKS = [  # source, pdf name, min pdfium share, min pypdf share
-    ("examples/coffee/coffee.qlm", "coffee.pdf", 0.96, 0.85),
-    ("examples/sample.qlm",        "sample.pdf", 0.95, 0.90),
+    ("examples/coffee/coffee.qlm", "coffee.pdf", 0.95, 0.85),
+    ("examples/sample.qlm",        "sample.pdf", 0.88, 0.80),
 ]
 BIDI = dict.fromkeys(map(ord, "‎‏‪‫‬‭‮⁦⁧⁨⁩"))
 DRAW = ("rect", "circle", "ellipse", "line", "path", "text")

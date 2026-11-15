@@ -13,7 +13,7 @@ echo "== installing build tools and libraries"
 sudo apt-get update -q
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
     build-essential pkg-config libharfbuzz-dev libfribidi-dev zlib1g-dev python3-pip
-pip3 install --user --break-system-packages -q pypdfium2 pypdf ||
+pip3 install --user --break-system-packages -q pypdfium2==5.15.2 pypdf==7.1.0 ||
     echo "(could not install pypdfium2/pypdf; make test skips the copy-and-search test)"
 
 # gram next to qalam if we may write there (Codespaces: /workspaces/gram)
